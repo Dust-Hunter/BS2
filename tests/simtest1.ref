@@ -1,0 +1,9 @@
+$JOB simtest1
+f 2 a 
+a a a 0 
+f 3 a 
+2 1e 0 
+f 1 1e 
+$RUN
+2a
+$END

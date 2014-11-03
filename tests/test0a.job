@@ -1,0 +1,10 @@
+ % Comments are allowed here
+ % (over multiple lines if need be)
+$JOB test0a
+ % Comments are allowed here too
+ % (also over multiple lines if need be)
+$RUN
+ % For that matter, comments are even allowed here
+ % (although that doesn't make much sense)
+$END
+ % This would be a bad - but not illegal - place for comments

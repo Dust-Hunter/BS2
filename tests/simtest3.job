@@ -1,0 +1,15 @@
+$JOB simtest3
+	MOVI	20, 0			% r20 = max = 0
+loop	TRAP	getw, 10	% r10 = input
+	BNEG	10, out			% if input < 0, goto out
+	SUB	11, 10, 20			% r11 = input – max
+	BNEG	11, else		% if input <= max, skip to else
+	MOV	20, 10				% r20 = max := r10
+else	JMP	loop			% go get more input
+out	TRAP	putw, 20		% output max = r20
+	MOVI	30, 0			% status = 0
+	TRAP	halt, 30		% return status
+$RUN
+42
+% Intentionally not enough input - no negative number!
+$END

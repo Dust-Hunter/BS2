@@ -1,0 +1,24 @@
+% This file is left intentionally without comments,
+% as an exercise for the reader to (1) figure out what it does 
+% and (2) figure out what's wrong with it (under what conditions
+% it will behave badly).
+$JOB test4
+	MOVI	11, 0
+	MOVI	12, 0
+	TRAP	getw, 10
+loop	SUB	13, 10, 11
+	BEQZ	13, out
+	TRAP	getw, 14
+	ADD	12, 12, 14
+	ADDI	11, 11, 1
+	JMP	loop
+out	TRAP	putw, 12
+	MOVI	30, 0
+	TRAP	halt, 30
+$RUN
+4
+5
+6
+7
+24
+$END

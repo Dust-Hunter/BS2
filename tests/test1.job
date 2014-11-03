@@ -1,0 +1,8 @@
+$JOB test1
+	TRAP	getw, 10
+	TRAP	putw, 10
+	MOVI	30, 0
+	TRAP	halt, 30
+$RUN
+42
+$END

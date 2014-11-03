@@ -1,0 +1,227 @@
+=====================================================================
+README - Introduction to the RMMIX Assembler/Disassembler Package.
+
+Author: Prof. Ronald Charles Moore
+Fachbereich Informatik - Dept. of Computer Science
+Hochschule Darmstadt   - University of Applied Sciences
+                         Darmstadt, Germany
+
+This File is part of the RMMIX Assembler/Emulator Package.
+
+Version 0.7 (October 2014)
+
+=====================================================================
+
+This package has been developed to be used ONLY with the course
+named "Betriebssysteme" (Operating Systems), given by Prof. Moore
+at the University of Applied Science in Darmstadt, Germany.
+
+No warranty of any kind is given to anyone.
+
+Only students currently enrolled and actively involved in the
+"Betriebssysteme" course are granted permission to work with this
+package, but they are given unlimited permission to do as much or
+as little with this package as they choose, up to but NOT including
+distribution of the package or any of its contents.
+
+Please report bugs to <ronald.moore@h-da.de>
+
+=====================================================================
+
+Building on UNIX/Linux/Mac OS X.
+
+    Requirements:
+    - make
+    - g++
+    - sed
+    - cmp
+(all of which should already be installed on most any posix conform system).
+
+        Optional Requirements:
+        - clang = alternative C++ Compiler
+
+Installation:
+
+   Enter the following into a shell:
+
+        make
+
+    If you have trouble due to gtest, either modify the Makefile, or just enter:
+
+         make rmmixas rmmixsim
+
+    (This will build only the assembler and simulator and skip the unit tester).
+
+Building on Windows
+
+    Windows is not supported and probably will not work.
+
+Running the programs
+
+    Basic Sanity check: Enter the following into a shell:
+        ./rmmixas --help
+        ./rmmixsim --help
+
+    (This should give you more information on using the programs).
+
+    (The "unitTester" program takes no arguments, i.e. just enter
+             ./unitTester
+    The output should be self-explanatory is everything is OK, but you'll
+        need to read the source code to understand any errors found).
+
+Testing the Assembler & Simulator
+
+    You can test the assembler and the simulator by
+    entering the following into a shell:
+
+        make test
+
+    "make test" runs the unitTester first, and then a serious of
+    "integration tests", which consist of running either the assembler or
+    the simulator, and then comparing an output file to a reference file.
+
+Running the Assembler and Simulator
+
+    Enter (for example)
+
+        ./rmmixas tests/test1.job >test1.obj
+        ./rmmixsim test1.obj
+            less rmmix.log
+
+    i.e.
+        (1) assemble test1.job, storing the output in test1.obj,
+        (2) run the simulator, redirecting test1.obj to stdin for input,
+        (3) use "less" to examine the log file (rmmix.log).
+
+
+=====================================================================
+PACKAGE CONTENTS - in alphabetical order (the order returned by "ls -l"):
+
+Makefile           File required by "make", used to build the software.
+
+README             This file
+
+rmminixos.cpp
+rmminixos.h
+                    Source code and header file for the OS of the Emulator.
+                    Defines the namespace rmminixOS (Java Programmers, think of
+                    a static class).
+                    Contains the load() function and the interrupt handlers.
+
+                    Used by the rmmixsim program (not used by rmmixas).
+
+rmmixas.cpp
+                    Contains the main() function for the Assembler.
+                    Used by the rmmixas program (not used by rmmixsim).
+
+RMMIXcodes.h
+                    Header file for the RMMIX_JDL namespace,
+                    in which all the keywords of the RMMIX Job Description
+                    Language (RMMIX_JDL for short) are defined.
+                    The names of the operations are all found here,
+                    and their op-codes.  Also: the names of the traps
+                    (interrupts) and their codes -
+                    plus the symbolTable class for storing symbols and their
+                    codes, and some utility functions for working with symbol
+                    tables.
+
+                    Note that there is NO RMMIXcodes.cpp file (not needed).
+
+                    Used by both rmmixsim & rmmixas.
+
+rmmixHardware.cpp
+rmmixHardware.h
+                    Source code and header file for the rmmixHardware classes,
+                    in which all global objects (e.g. the instruction memory and
+                    the data memory) are declared and instantiated, and important
+                    methods such as run() and handleInterrupt() (calls one of
+                    the interrupt handlers from rmminixos.cpp) and
+                    executeInstruction().
+
+                    Used by the rmmixsim program (not used by rmmixas).
+
+RMMIXinstruction.cpp
+RMMIXinstruction.h
+                    Source code and header file for the RMMIXinstruction class
+                    - i.e. the data structure that represents one line of RMMIX
+                    code, i.e. one instruction.  Builds on the op-codes (etc.) found
+                    in RMMIXcodes.h (see above).
+                    Note that the code for parsing an instruction is NOT here
+                    (see RMMIXJobLang.cpp, below)
+
+                    Used by both rmmixsim & rmmixas.
+
+RMMIXJobLang.cpp
+RMMIXJobLang.h
+                    Source code and header file for the compiler classes,
+                    which includes functions for parsing RMMIX JDL files, in
+                    other words, input functions for the RMMIXinstruction
+                    class (see above). Uses the symbol tables defined in
+                    RMMIXcodes.h and the RMMIXinstruction class (see above).
+
+                    Used by both rmmixsim & rmmixas.
+
+rmmixsim.cpp
+                    Contains the main() function for the Emulator.
+                    Used by the rmmixsim program (not used by rmmixas).
+
+tests/
+                    A directory containing test cases.
+
+unitTester.cpp
+                    Contains the unit tests which use the Google C++ Testing
+                    Framework (see above).
+
+UnitTesting.h       Needed only by unitTester.cpp
+
+=====================================================================
+
+RELEASE HISTORY
+
+Version 0.7, 10 Oct 2014
+    New Semester, New Version.  Google C++ Testing Framework removed.
+    Input/Output handling improved.
+
+Version 0.6.1, 22 Oct. 2013
+    Cleaned up indentation in this file, added information on using gtest in
+    Ubuntu, modified the Makefile as well (for gtest in Ubuntu).
+
+Version 0.6, Sept. 2013
+    Several Major Changes, including:
+      - First use of the Google C++ Testing Framework.
+      - Integration test in tests/Makefile now colorful and readable (more or less).
+      - Old "test" program renamed "unitTester".
+      - Dissassembler removed.
+      - Assembler restructured to be a "wrapper" for ifstream, i.e. to be used
+         with operator>>
+      - Simulator restructured to be a collection of three simualted hardware
+        components. Interrupts now longer modeled using exceptions.
+
+Verion  0.5.1, released on Friday, 28 October 2011
+    - Two very minor bug fixes (one in Makefile, one in rmmixsim.cpp)
+
+Version 0.5, released on Tuesday, 4 October 2011
+    - various bug-fixes
+    - increased documentation
+    - renamed ".o" files to be ".obj" files when testing (see tests/Makefile).
+
+Version 0.4, released on Thursday, 7 October 2010
+    - added the emulator.
+
+Version 0.3, released on Thursday, 8 October 2009
+    - removed the second pass of the disassembler
+    - more comments
+    - tested successful build on Mac OS X
+
+Version 0.2, released on Thursday, 9 April 2009.
+    - Better error reporting,
+    - The --version and --help options do not prevent correct output.
+    - Rules for testing moved from Makefile to tests/Makefile
+    - New test file (tests/testErrors.job) added.
+
+Version 0.1, released on Wednesday, 8 April 2009.
+    - Initial Release
+
+
+
+

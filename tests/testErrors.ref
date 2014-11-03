@@ -1,0 +1,7 @@
+$JOB test0d
+b 0 
+0 
+2 a 2a 
+$RUN
+2a
+$END

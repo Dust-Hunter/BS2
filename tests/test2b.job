@@ -1,0 +1,13 @@
+$JOB test2b
+	TRAP	getw, 10 	% input r10 = a number
+	TRAP	getw, 11	% input r11 = another number, tentative max
+	SUB	12, 10, 11	% r12 = r10 – r11 < 0 iff r10 < r11
+	BNEG	12, out		% if r12 < 0, goto out
+	MOV	11, 10		% r11 = max := r10
+out	TRAP	putw, 11        % output r11 = max 
+	MOVI	30, 0		% return status = 0
+	TRAP	halt, 30
+$RUN
+42
+24
+$END

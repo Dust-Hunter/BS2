@@ -1,0 +1,14 @@
+ % Comments are allowed here
+ % (over multiple lines if need be)
+$JOB test0b
+ % Comments are allowed here too
+ % (also over multiple lines if need be)
+ MOV 1,2   %comments here too
+ % comments here too
+ MOVI 3,42 % comments here of course
+ % last comment in the RMMIXAL block
+$RUN
+ % For that matter, comments are even allowed here
+ % (although that doesn't make much sense)
+$END
+ % This would be a bad - but not illegal - place for comments

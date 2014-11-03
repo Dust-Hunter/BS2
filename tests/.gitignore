@@ -1,0 +1,6 @@
+###############
+# Test Output #
+###############
+*.obj
+*.simout
+rmmix.log

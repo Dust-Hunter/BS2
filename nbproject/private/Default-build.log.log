@@ -1,0 +1,4 @@
+clang++ -c -g -std=c++11 -Wall -MMD -fmessage-length=0 -o rmmixas.o rmmixas.cpp
+make: clang++: Command not found
+Makefile:132: recipe for target `rmmixas.o' failed
+make: *** [rmmixas.o] Error 127

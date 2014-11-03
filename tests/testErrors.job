@@ -1,0 +1,9 @@
+$JOB test0d
+     	JMP	label
+ label  NOP  % nop takes no operands, right?
+ 		MOVE	1, 2, 3  % there is no MOVE instruction, let's see diagnostic
+ end    JUMP    end      % there is no JUMP either
+ 		MOVI	10, 42   % this should be quite legal...
+$RUN
+ 42
+$END
