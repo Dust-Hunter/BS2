@@ -53,6 +53,9 @@
 
 static int instructionNumberToRestore = -1;
 static int registerNumberToUpdate     = -1;
+objectCodeDecompiler* decompiler;
+int currentJobIndex = 1 ;
+
 
 // =====================================================================
 //             INTERRUPT HANDLERS
@@ -64,11 +67,15 @@ static int registerNumberToUpdate     = -1;
 void rmminixOS::handleHALT( )
 {
     int status = theCPU->registers[ theCPU->trapData ];
-    rmmixHardware::logStream << "Simulation Halt! Status = "
-                             << status << std::endl;
-    // This is OK if we only want to run one program -
-    // We need to extend this to handle multiprogramming!
-    exit(status); // brutal!
+    rmmixHardware::logStream << "Simulation Halt! Status = ";
+    
+    if(rmminixOS::loadNextProgramm()){
+     return;
+    }else{
+     exit(status);
+    }
+
+
 } // end handleHALT
 
 void rmminixOS::handleFATAL( )
@@ -77,8 +84,39 @@ void rmminixOS::handleFATAL( )
     std::cerr << "FATAL Interrupt!!" << std::endl;
     // This is OK if we only want to run one program -
     // We need to extend this to handle multiprogramming!
-    exit( theCPU->trapData );
+
+	if(rmminixOS::loadNextProgramm()){
+     return;
+    }else{
+     exit( theCPU->trapData );
+    }
+    
 } // end handleFATAL
+
+bool rmminixOS::loadNextProgramm(){
+	//try loading another programm	
+	if(rmminixOS::load(*decompiler)){
+		//create a new output file
+		currentJobIndex++;
+		std::string filename = "job";
+		filename.append(std::to_string(currentJobIndex));
+		filename.append(".txt");
+		std::ofstream os;
+		os.open(filename);
+		
+		//rebind io components
+ 		assert( hardwareComponents[ 1 ] ); // is not null
+        	hardwareComponents[1]->bind( decompiler );
+    		assert( hardwareComponents[2 ] ); // is not null
+                hardwareComponents[2]->bind( &(os) ); // bind to std out
+
+		return true;
+	}else{
+		//failed to relaod
+		return false;	
+	}
+
+}
 
 // =====================================================================
 //           Load -
@@ -128,7 +166,7 @@ bool rmminixOS::boot(int argc,char *argv[]) {
     
     // SET UP INPUT
     // try to open a decompiler with a given file name
-    objectCodeDecompiler* decompiler = new objectCodeDecompiler(argv[1]);
+    decompiler = new objectCodeDecompiler(argv[1]);
     // We call new instead of using a local variable so that the
     // decompiler object survives the call to this function
      // (it will be used later by the intput device object).
@@ -161,7 +199,10 @@ bool rmminixOS::boot(int argc,char *argv[]) {
     // SET UP OUTPUT
     assert( hardwareComponents[2 ] ); // is not null
     
-    hardwareComponents[2]->bind( &(std::cout) ); // bind to std out
+    std::ofstream os;
+    os.open("job1.txt");    
+
+    hardwareComponents[2]->bind( &(os) ); // bind to std out
     
     return true;
 } // end boot

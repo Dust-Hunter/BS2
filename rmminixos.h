@@ -51,6 +51,8 @@ namespace rmminixOS {
     // Programmable Interrupt (TRAP) Handlers
     void handleHALT( );
 
+    bool loadNextProgramm();
+
     void handleGETW( );
 
     void handlePUTW( );
