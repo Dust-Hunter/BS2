@@ -39,7 +39,7 @@ namespace rmminixOS {
      * @param filename the name of the file that should contain the programm code
      * @return true if everything worked as intened, false if any errors accured
      */
-    bool boot(int currentProgIndex,char *filename,char *argv[]);
+    bool boot(int argc,char *argv[]);
 
     //    Load
     // Loads instructions into Instruction memory, by reading an object file.
@@ -47,12 +47,7 @@ namespace rmminixOS {
     // Returns true if and only if everything loaded OK.
     bool load( objectCodeDecompiler& decompiler );
     
-    /**
-     * creates the filename for the output file
-     * 
-     */
-    std::string createOutputFilename(int jobnumber)const;
-
+    
     // Programmable Interrupt (TRAP) Handlers
     void handleHALT( );
 

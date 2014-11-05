@@ -123,12 +123,12 @@ bool rmminixOS::load( objectCodeDecompiler& decompiler )
 //     Bind standard out to the output device.
 //     This will have to be changed when we go to multiple I/O devices...
 //     Returns true if and only if everything booted OK
-bool rmminixOS::boot(int currentProgIndex,char *filename,char *argv[]) {
+bool rmminixOS::boot(int argc,char *argv[]) {
 
     
     // SET UP INPUT
     // try to open a decompiler with a given file name
-    objectCodeDecompiler* decompiler = new objectCodeDecompiler(filename);
+    objectCodeDecompiler* decompiler = new objectCodeDecompiler(argv[1]);
     // We call new instead of using a local variable so that the
     // decompiler object survives the call to this function
      // (it will be used later by the intput device object).

@@ -119,9 +119,9 @@ int main(int argc, char *argv[])
 
         SetUpHardware( argc );
 
-        for (int i=1;i<argc;i++){
         
-        if(rmminixOS::boot(i, argv[i] ),argv){
+        
+        if(rmminixOS::boot(argc,argv)){
         //onley run the sim if booting when smooth 
             
         // Run The Simulation
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
                 component.second->run( );
         
         }
-        }
+        
 
     } catch (std::string err) {
         std::cerr << std::flush << "Caught exception: " << err << std::endl
