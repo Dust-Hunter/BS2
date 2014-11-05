@@ -154,30 +154,18 @@ bool rmminixOS::boot(int currentProgIndex,char *filename,char *argv[]) {
         assert( decompiler->good() ); // should still be OK
         assert( ! decompiler->eof() ); // should not be at eof (or can it?)
 
-        assert( hardwareComponents[ (currentProgIndex*2)-1 ] ); // is not null
-        hardwareComponents[ (currentProgIndex*2)-1 ]->bind( decompiler );
+        assert( hardwareComponents[ 1 ] ); // is not null
+        hardwareComponents[1]->bind( decompiler );
     }; // end if load successful
 
     // SET UP OUTPUT
-    assert( hardwareComponents[ currentProgIndex*2 ] ); // is not null
+    assert( hardwareComponents[2 ] ); // is not null
     
-    filebuffer fb;
-    std::string outFilename = createOutputFilename(currentProgIndex);
-    fb.open(outFilename,ios::out);
-    std::ostream os(&fb);
-    
-    hardwareComponents[ currentProgIndex*2 ]->bind( &(os) ); // bind to std out
+    hardwareComponents[2]->bind( &(std::cout) ); // bind to std out
     
     return true;
 } // end boot
 
-
- std::string createOutputFilename(int jobnumber)const{
-     std::string outFileName = "job";
-     outFileName.append(std::to_string(jobnumber));
-     outFileName.append(".txt");
-     return outFileName;    
- }
 
 // =====================================================================
 //                                  Input and Output
