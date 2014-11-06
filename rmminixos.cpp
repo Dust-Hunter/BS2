@@ -55,6 +55,7 @@ static int instructionNumberToRestore = -1;
 static int registerNumberToUpdate     = -1;
 objectCodeDecompiler* decompiler;
 int currentJobIndex = 1 ;
+std::ofstream os;
 
 
 // =====================================================================
@@ -94,14 +95,23 @@ void rmminixOS::handleFATAL( )
 } // end handleFATAL
 
 bool rmminixOS::loadNextProgramm(){
+
+	os.close();	
+	
 	//try loading another programm	
-	if(rmminixOS::load(*decompiler)){
+	//check for another job line
+	if(decompiler->gotoState( JobLangCompiler::codeReaderState  )){
+			
+		if(!rmminixOS::load(*decompiler)){
+		return false;		
+		}
+		
 		//create a new output file
 		currentJobIndex++;
 		std::string filename = "job";
 		filename.append(std::to_string(currentJobIndex));
 		filename.append(".txt");
-		std::ofstream os;
+		
 		os.open(filename);
 		
 		//rebind io components
@@ -109,7 +119,10 @@ bool rmminixOS::loadNextProgramm(){
         	hardwareComponents[1]->bind( decompiler );
     		assert( hardwareComponents[2 ] ); // is not null
                 hardwareComponents[2]->bind( &(os) ); // bind to std out
+		//trap number fuer neustart auf initzialwert setzten		
+		hardwareComponents[0]->trapNumber=0;
 
+		
 		return true;
 	}else{
 		//failed to relaod
@@ -143,10 +156,15 @@ bool rmminixOS::load( objectCodeDecompiler& decompiler )
         while ( decompiler >> instruction ) {
             theCPU->instructionMemory[ instructionNumber ] = instruction;
             ++instructionNumber;
+
         }; // until no more lines or found $RUN
 
         // if we're here, then we could load the program.
         theCPU->registers[ 0 ] = 0;
+
+	
+	
+
         return true;
     } catch ( std::string error  ) { // if an exception was thrown, something went wrong.
         std::cerr << "Error while loading file named " << decompiler.filename
@@ -199,7 +217,7 @@ bool rmminixOS::boot(int argc,char *argv[]) {
     // SET UP OUTPUT
     assert( hardwareComponents[2 ] ); // is not null
     
-    std::ofstream os;
+    //will be closed when one job ends and/or another starts
     os.open("job1.txt");    
 
     hardwareComponents[2]->bind( &(os) ); // bind to std out

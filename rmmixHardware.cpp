@@ -58,6 +58,8 @@ std::map< int, rmmixHardware* > hardwareComponents; // global list of hardware
 
 void rmmixCPU::run( )
 {
+
+
     if ( trapNumber )
         handleInterrupt( );
     else if ( registers[ 0 ] < 0 ) {
@@ -66,6 +68,7 @@ void rmmixCPU::run( )
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];
          executeInstruction(instruction);
+
     }; // end if instruction Pointer OK and no interrupt needs handling
 } // end of run( )
 
@@ -113,6 +116,7 @@ void rmmixCPU::handleInterrupt( )
 
 void rmmixCPU::executeInstruction(RMMIXinstruction& instruction)
 {
+
     log() << "execute @ addr " << registers[0]
           << " : " << instruction.dump() << std::endl;
     switch (instruction.fields[0]) // i.e. switch on opcode
@@ -225,6 +229,7 @@ void rmmixCPU::executeInstruction(RMMIXinstruction& instruction)
 } // end of executeInstricution( )
 
 void rmmixInputDevice::run( ) {
+
     assert( (0 == trapNumber) || (RMMIX_JDL::GETW == trapNumber));
     if ( RMMIX_JDL::GETW == trapNumber ) {
         countDownTimer = inputDelay;
@@ -251,7 +256,7 @@ void rmmixInputDevice::run( ) {
                 theCPU->trapNumber = RMMIX_JDL::GETW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which input
                                                  // Device is finished.
-                log() << "signaled trap " << theCPU->trapNumber
+		log() << "signaled trap " << theCPU->trapNumber
                      << ", data = " <<       theCPU->trapData
                     << ", status = " <<      theCPU->trapStatus
                     << std::endl;
@@ -263,6 +268,7 @@ void rmmixInputDevice::run( ) {
 }
 
 void rmmixOutputDevice::run( ) {
+	
     assert( (0 == trapNumber) || (RMMIX_JDL::PUTW == trapNumber));
     if ( RMMIX_JDL::PUTW == trapNumber ) {
         countDownTimer = outputDelay;
@@ -285,7 +291,7 @@ void rmmixOutputDevice::run( ) {
                                                  // Device is finished.
                 // Here is the actual output...
                 bool OK = ( *outputSink << buffer << std::endl );
-
+		
                 theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
                       << ", status = "     << theCPU->trapStatus
