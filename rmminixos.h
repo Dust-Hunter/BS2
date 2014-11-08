@@ -33,7 +33,7 @@
 
 namespace rmminixOS {
     /**
-     * boots a programm
+     * boots the first programm
      * @param currentProgIndex provides information which programm is to be
      * booted, importent for the i/o components...I think so
      * @param filename the name of the file that should contain the programm code
@@ -45,7 +45,41 @@ namespace rmminixOS {
     // Loads instructions into Instruction memory, by reading an object file.
     // Expects a decompiler (a wrapper around a std::ifstream object)
     // Returns true if and only if everything loaded OK.
-    bool load( objectCodeDecompiler& decompiler );
+    bool load( objectCodeDecompiler& decompiler, int programmIndex );
+
+    //boots a programm
+    //@param programmIndex the index of the programm to be booted in te argv array
+    //@param argv what you whould expect it to be
+    //@return true if everything went well,false if not
+    bool bootProgramm(int programmIndex);
+
+    std::string getOutputFilename();
+    
+    //trys to switch to another progamm
+    //@return true if the switch went well, false if not
+    bool switchProgramm();
+    
+    bool isCurrentJobDone();
+
+    void removeCurrentJob();
+
+    int getNextWaitingJob();
+    
+    void executeJobChange(int nextJobIndex);
+
+    void saveRegisters();
+
+    bool hasBeenBooted(int programmIndex);
+
+    void restoreRegState(int nextJobIndex);
+   
+    int getPCof(int programmIndex);
+
+    void setPCof(int programmIndex,int newPC);
+
+    void restoreInstructionMem(int nextJobIndex);
+ 
+    
     
     
     // Programmable Interrupt (TRAP) Handlers
