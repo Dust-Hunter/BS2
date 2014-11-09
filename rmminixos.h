@@ -78,8 +78,14 @@ namespace rmminixOS {
     void setPCof(int programmIndex,int newPC);
 
     void restoreInstructionMem(int nextJobIndex);
+	
+    void restoreTrapRegs(int nextJobIndex);
+
+    void saveTrapRegs();
+
+    void storeInput(int input,int jobIndex);
  
-    
+    void clearInterrups(int jobIndex);
     
     
     // Programmable Interrupt (TRAP) Handlers

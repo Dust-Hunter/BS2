@@ -112,25 +112,30 @@ int main(int argc, char *argv[])
         }; // end for all arguments
         if ( specialArgsFound ) return 0; // Everythings's OK, go home
 
-        if ( 2 != argc) { // somethings's wrong, go home
+        if ( argc < 2) { // somethings's wrong, go home
             printUsage(argv[ 0 ]);
             return ( -1 );
         };
 
         SetUpHardware( argc );
 
-        
+       
         
         if(rmminixOS::boot(argc,argv)){
         //onley run the sim if booting when smooth 
-            
+           
         // Run The Simulation
         const int forever = 1024 * 1024; // infinite loop protection...
         for ( rmmixHardware::clock = 0;
               rmmixHardware::clock < forever;
               rmmixHardware::clock++ )
-            for ( auto component : hardwareComponents ) // C++11 for all loop!
+            for ( auto component : hardwareComponents ){ // C++11 for all loop!
+		
                 component.second->run( );
+		
+		
+		}
+	
         
         }
         

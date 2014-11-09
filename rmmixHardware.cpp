@@ -67,7 +67,8 @@ void rmmixCPU::run( )
     }
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];
-         executeInstruction(instruction);
+	
+	 executeInstruction(instruction);
 
     }; // end if instruction Pointer OK and no interrupt needs handling
 } // end of run( )
@@ -83,16 +84,16 @@ void rmmixCPU::handleInterrupt( )
     switch (trapNumber) {
 
     case RMMIX_JDL::HALT:
-        rmminixOS::handleHALT(  );
-        break;
+	rmminixOS::handleHALT(  );
+	break;
 
     case RMMIX_JDL::GETW:
         rmminixOS::handleGETW( );
         break;
 
     case RMMIX_JDL::PUTW:
-        rmminixOS::handlePUTW(  );
-        break;
+	 rmminixOS::handlePUTW(  );
+         break;
 
     case RMMIX_JDL::FATAL:
         rmminixOS::handleFATAL(  );
@@ -265,20 +266,24 @@ void rmmixInputDevice::run( ) {
     } else { // if countDownTimer == 0, do nothing
         log() << "idle." << std::endl;
     }
+
+
 }
 
 void rmmixOutputDevice::run( ) {
 	
     assert( (0 == trapNumber) || (RMMIX_JDL::PUTW == trapNumber));
     if ( RMMIX_JDL::PUTW == trapNumber ) {
-        countDownTimer = outputDelay;
+	      
+	countDownTimer = outputDelay;
         buffer = trapData;
         // clear interrupt
         trapNumber = trapData = trapStatus = 0;
         log() << "starting delay, buffered reg[" << trapData
                << "] = " << buffer << std::endl;
     } else if ( countDownTimer ) {
-        countDownTimer--;
+	         
+	countDownTimer--;
         log() << "Delay down to " << countDownTimer << std::endl;
         if ( 0 == countDownTimer ) {
             assert( theCPU );
@@ -286,13 +291,13 @@ void rmmixOutputDevice::run( ) {
             if ( 0 != theCPU->trapNumber )
                 countDownTimer = 1; // wait one more cycle...
             else { // if the CPU is ready
+		
                 theCPU->trapNumber = RMMIX_JDL::PUTW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which output
-                                                 // Device is finished.
+                     
                 // Here is the actual output...
                 bool OK = ( *outputSink << buffer << std::endl );
-		
-                theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
+		theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
                       << ", status = "     << theCPU->trapStatus
                       << std::endl;
@@ -301,6 +306,8 @@ void rmmixOutputDevice::run( ) {
     } else { // if countDownTimer == 0, do nothing
         log() << "idle." << std::endl;
     }
+
+
 }
 
 
