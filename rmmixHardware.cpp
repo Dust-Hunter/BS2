@@ -63,7 +63,7 @@ void rmmixCPU::run( )
     if ( trapNumber )
         handleInterrupt( );
     else if ( registers[ 0 ] < 0 ) {
-        log() << "Idle." << std::endl;
+         rmminixOS::switchProgramm();
     }
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];

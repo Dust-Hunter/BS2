@@ -42,7 +42,7 @@
 
 #include "RMMIXJobLang.h" // for objectCodeDecompiler class
 
-#define JobFinished -1
+#define JobFinished -3
 #define noJobLeft -1
 #define hasNotBeenBooted -2
 
@@ -60,8 +60,6 @@
 // but we'll almost certainly need a lot more later, especially when we
 // get to multiple processes. Feel free to add whatever is necessary!
 
-static int instructionNumberToRestore = -1;
-static int registerNumberToUpdate     = -1;
 objectCodeDecompiler* decompiler;
 int currentJobIndex;
 std::vector<std::vector<RMMIXinstruction>>* programmMem;
@@ -166,6 +164,7 @@ bool rmminixOS::switchProgramm(){
 	
 		return true;
 	}else{
+		std::cout<<"this is where I should go"<<std::endl;
 		return false;
 	}
 
@@ -237,9 +236,14 @@ bool rmminixOS::hasBeenBooted(int nextJob){
 }
 
 void rmminixOS::saveRegisters(){
-for(int i=0;i<registerMem->at(0).size();i++){
-	registerMem->at(currentJobIndex).at(i)= theCPU->registers.at(0);
-}
+	for(int i=0;i<registerMem->at(0).size();i++){ 
+	
+		//if the cpu was set to idle via -1 dont save this,
+		//the currect pc was saves bevore the cpu was set to idle
+		if(i!=0&&registerMem->at(currentJobIndex).at(i)!=-1){
+			registerMem->at(currentJobIndex).at(i)= theCPU->registers.at(0);
+		}
+	}
 
 }
 
@@ -281,10 +285,21 @@ trapRegMem->at(currentJobIndex).at(_trapStatus) = theCPU->trapStatus;
 }
 
 void rmminixOS::storeInput(int input,int jobIndex){
-trapRegMem->at(jobIndex).at(_inputData) = input;
+
+trapRegMem->at(inputToJobIndex(jobIndex)).at(_inputData) = input;
+
 
 
 }
+
+
+int rmminixOS::inputToJobIndex(int deviceNumber){
+return ((deviceNumber+1)/2)-1;
+}
+
+int rmminixOS::outputToJobIndex(int deviceNumber){
+return (deviceNumber/2)-1;
+}	
  
 
 bool rmminixOS::loadNextProgramm(){
@@ -472,7 +487,7 @@ bool rmminixOS::boot(int argc,char *argv[]) {
 	for(int i=0;i<argc-1;i++){
         programmMem->push_back(std::vector<RMMIXinstruction>());
 	//Note: where in argc the first programm has the index 1, in argVector it will be 0	
-	trapRegMem->push_back(std::vector<int>(3,0));
+	trapRegMem->push_back(std::vector<int>(4,0));
 	argVector->push_back(argv[i+1]);
 	registerMem->push_back(std::vector<int>(32,0));
 	setPCof(i,hasNotBeenBooted);
@@ -493,19 +508,16 @@ bool rmminixOS::boot(int argc,char *argv[]) {
 // Input, Phase 1 (CPU requests input)
 void rmminixOS::handleGETW(  )
 {
+	std::cout<<"hallo getw"<<std::endl;
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
     // Save data we will need later
     if ( 0 <= theCPU->registers[0] ) {
-        instructionNumberToRestore = theCPU->registers[ 0 ];
-        registerNumberToUpdate = theCPU->trapData;
-        // Put the CPU in an idle state until PUTW_READY signal
-	//try switching to another programm
-	if(switchProgramm()){
-		//NOTHING TO DO ?
-	}else{
-		 theCPU->registers[ 0 ] = -1; // make the cpu wait!
-	}
-       
+	//save the pc
+        setPCof(currentJobIndex,theCPU->registers[ 0 ]);
+      
+	// Put the CPU in an idle state until PUTW_READY signal
+        theCPU->registers[ 0 ] = -1; // make the cpu wait!
+	
     };
 
     // Signal the input device
@@ -519,6 +531,8 @@ void rmminixOS::handleGETW(  )
 
         // Clear interrupts
         theCPU->trapNumber = theCPU->trapData = theCPU->trapStatus = 0;
+	
+	
     };
     // else do nothing (but wait until the input device is ready!)
 
@@ -527,6 +541,7 @@ void rmminixOS::handleGETW(  )
 // Input, Phase 2 (Device signals completion)
 void rmminixOS::handleGETW_READY( )
 {
+	std::cout<<"getwrdy"<<std::endl;
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
 
     // The hardware has signaled that the get-word operation is done.
@@ -534,13 +549,22 @@ void rmminixOS::handleGETW_READY( )
         // trigger fatal interrupt (crash current process)
         theCPU->trapNumber = RMMIX_JDL::FATAL;
     } else { // if OK status
+	
         int inputDevice = theCPU->trapData;
 	//assert( 1 == inputDevice ); // THIS MUST BE CHANGED LATER!
         assert( hardwareComponents[ inputDevice ] ); // not null
+	
         // Get data from input device
-	storeInput(hardwareComponents[ inputDevice ]->trapData,inputDevice)
-        
-       switchProgramm();
+	storeInput(hardwareComponents[ inputDevice ]->trapData,inputDevice);
+	
+	clearInterrups(inputToJobIndex(inputDevice));
+	hardwareComponents[ inputDevice ]->trapData = hardwareComponents[ inputDevice ]->trapStatus = hardwareComponents[ inputDevice ]->trapNumber = 0;
+	//this only happens if only 1 job is left and it was waiting
+        if(theCPU->registers[0]== -1){
+		theCPU->registers[0]=getPCof(currentJobIndex);
+	
+	}
+    
     };
 } // end handleGETW_READY
 
@@ -550,14 +574,13 @@ void rmminixOS::handlePUTW( )
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
     // Save data we will need later
     if ( 0 <= theCPU->registers[0] ) {
-        instructionNumberToRestore = theCPU->registers[ 0 ];
+        //save the pc
+        setPCof(currentJobIndex,theCPU->registers[ 0 ]);
+      
         // Put the CPU in an idle state until PUTW_READY signal
-	//try switching to another programm
-       if(switchProgramm()){
-		//NOTHING TO DO ?
-	}else{
-		 theCPU->registers[ 0 ] = -1; // make the cpu wait!
-	}
+	// Put the CPU in an idle state until PUTW_READY signal
+        theCPU->registers[ 0 ] = -1; // make the cpu wait!
+       
     };
 
     // Signal the output device
@@ -569,11 +592,10 @@ void rmminixOS::handlePUTW( )
         hardwareComponents[((currentJobIndex+1)*2)]->trapNumber = RMMIX_JDL::PUTW;
         hardwareComponents[((currentJobIndex+1)*2)]->trapData = theCPU->registers[ theCPU->trapData ];
         hardwareComponents[((currentJobIndex+1)*2)-1]->trapStatus = 0;
+	 // Clear interrupts
+        theCPU->trapNumber = theCPU->trapData = theCPU->trapStatus = 0;
 
-
-        
-	clearInterrups(outputDevice);
-	switch
+	
     }; // end if output device ready
     // else do nothing (but wait until the input device is ready!)
 
@@ -593,10 +615,13 @@ void rmminixOS::handlePUTW_READY( )
         int outputDevice = theCPU->trapData;
         //assert( 1 == outputDevice ); // This will change later!
         assert( hardwareComponents[ outputDevice ] ); // not null
+	  clearInterrups(outputToJobIndex(outputDevice));
+hardwareComponents[ outputDevice ]->trapData = hardwareComponents[ outputDevice ]->trapStatus = hardwareComponents[outputDevice ]->trapNumber = 0;
+	//this only happens if only 1 job is left and it was waiting
+        if(theCPU->registers[0] == -1){
+		theCPU->registers[0]=getPCof(currentJobIndex);
+	}
 
-      
-	clearInterrups(outputDevice);
-	switchJobs();
     };
 
 } // end handlePUTW_READY

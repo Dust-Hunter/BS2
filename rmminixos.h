@@ -86,6 +86,10 @@ namespace rmminixOS {
     void storeInput(int input,int jobIndex);
  
     void clearInterrups(int jobIndex);
+
+    int inputToJobIndex(int deviceNumber);
+
+    int outputToJobIndex(int deviceNumber);	
     
     
     // Programmable Interrupt (TRAP) Handlers
