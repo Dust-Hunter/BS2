@@ -300,11 +300,12 @@ void rmmixOutputDevice::run( ) {
 		
                 theCPU->trapNumber = RMMIX_JDL::PUTW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which output
-                     std::cout<<"doing the thing"<<std::endl;
+                     std::cout<<outputSink->good()<<" is os"<<std::endl;
                 // Here is the actual output...
-		std::cout<<"doing the output"<<std::endl;
-                bool OK = ( *outputSink << buffer << std::endl );
 		
+                bool OK = ( *outputSink << buffer << std::endl );
+
+		  std::cout<<outputSink->good()<<" is os"<<std::endl;
 		theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
                       << ", status = "     << theCPU->trapStatus

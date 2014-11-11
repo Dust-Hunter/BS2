@@ -53,7 +53,7 @@ namespace rmminixOS {
     //@return true if everything went well,false if not
     bool bootProgramm(int programmIndex);
 
-    std::string getOutputFilename();
+    std::string getOutputFilename(int jobIndex);
     
     //trys to switch to another progamm
     //@return true if the switch went well, false if not

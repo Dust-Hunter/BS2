@@ -141,7 +141,7 @@ void rmminixOS::removeCurrentJob(){
 	assert( hardwareComponents[(currentJobIndex+1)*2] ); // is not null
 	
 	//close the file in which the ostream is writing, change this line if something more readable is possible
-	osVector->at(currentJobIndex)->close();
+	//osVector->at(currentJobIndex)->close();
         	
 	setPCof(currentJobIndex,JobFinished);
 
@@ -182,11 +182,7 @@ restoreTrapRegs(nextJobIndex);
 void rmminixOS::executeJobChange(int nextJobIndex){
 	//check if the next job is the current Job, in that case nothing has to be done	
 	
-	std::cout<<(os0.good())<<" os0 state before change"<<std::endl;
-std::cout<<(os0.eof())<<" os0 eof"<<std::endl;
-std::cout<<(os0.fail())<<" os0 fail"<<std::endl;
-std::cout<<(os0.bad())<<" os0 bad"<<std::endl;
-std::cout<<(os0.is_open())<<" os0 open"<<std::endl;
+	
 	//save the pc of the old job, but only if the pc says the jo is done
 	//also in that case save the registers
 	if(getPCof(currentJobIndex)!=JobFinished){
@@ -210,9 +206,6 @@ std::cout<<(os0.is_open())<<" os0 open"<<std::endl;
 		
 	
 	}
-	
-
-std::cout<<(os0.good())<<" os0 state after change"<<std::endl;
 }
 
 void rmminixOS::clearInterrups(int jobIndex){
@@ -262,10 +255,10 @@ int rmminixOS::getNextWaitingJob(){
 }
 
 
-std::string rmminixOS::getOutputFilename(){
+std::string rmminixOS::getOutputFilename(int jobIndex){
 
 	std::string filename = "Mainjob";
-	filename.append(std::to_string(currentJobIndex));
+	filename.append(std::to_string(jobIndex));
         filename.append("Subjob");
         filename.append(std::to_string(subJobVector->at(currentJobIndex)));
 	filename.append(".txt");	
@@ -340,7 +333,7 @@ bool rmminixOS::loadNextProgramm(){
 		//OPEN A NEW OS STREAM
 		 
     		
-    		osVector->at(currentJobIndex)->open(getOutputFilename());  
+    		//osVector->at(currentJobIndex)->open(getOutputFilename(currentJobIndex));  
 		
 		//rebind io components
  		assert( hardwareComponents[ ((currentJobIndex+1)*2)-1 ] ); // is not null
@@ -450,9 +443,10 @@ bool rmminixOS::bootProgramm(int programmIndex){
     assert( hardwareComponents[(programmIndex+1)*2] ); // is not null
     currentJobIndex=programmIndex;
    
-    osVector->at(currentJobIndex)->open(getOutputFilename());   
+   // osVector->at(currentJobIndex)->open(getOutputFilename());   
 
-    hardwareComponents[((programmIndex+1)*2)]->bind( (osVector->at(currentJobIndex)) ); // bind to std out
+    //hardwareComponents[((programmIndex+1)*2)]->bind( (osVector->at(currentJobIndex)) ); // bind to std out
+hardwareComponents[((programmIndex+1)*2)]->bind(&(std::cout));
     setPCof(programmIndex,0);
 
     
@@ -559,7 +553,7 @@ void rmminixOS::handleGETW_READY( )
 {
 	
 	std::cout<<"getWReady"<<std::endl;
-	std::cout<<(os0.good())<<" os0 before call getW_ready"<<std::endl;
+	
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
 
     // The hardware has signaled that the get-word operation is done.
@@ -586,7 +580,7 @@ void rmminixOS::handleGETW_READY( )
 		theCPU->registers[0]=getPCof(currentJobIndex);
 	
 	}
-	std::cout<<(os0.good())<<" os0 after call getW_ready"<<std::endl;
+	
     
     };
 } // end handleGETW_READY
@@ -594,7 +588,7 @@ void rmminixOS::handleGETW_READY( )
 // Output, Phase 1 (CPU requests output)
 void rmminixOS::handlePUTW( )
 {
-
+osVector->at(currentJobIndex)->open(getOutputFilename(currentJobIndex));
 	std::cout<<"putW called by"<<currentJobIndex<<std::endl;
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
     // Save data we will need later
@@ -650,7 +644,7 @@ hardwareComponents[ outputDevice ]->trapData = hardwareComponents[ outputDevice 
         if(theCPU->registers[0] == -1){
 		theCPU->registers[0]=getPCof(currentJobIndex);
 	}
-
+osVector->at(currentJobIndex)->close();
     };
 
 } // end handlePUTW_READY
