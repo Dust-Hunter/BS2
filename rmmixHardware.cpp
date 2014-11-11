@@ -251,7 +251,10 @@ void rmmixInputDevice::run( ) {
 
                 // Read Number from decompiler object into MY trapData word!!!
                 bool OK = ( *decompiler >> trapData );
-
+		
+		
+		               
+		std::cout<<trapData<<std::endl;
                 // tell the CPU that she can pick up the data
                 theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 theCPU->trapNumber = RMMIX_JDL::GETW_READY;
@@ -261,6 +264,7 @@ void rmmixInputDevice::run( ) {
                      << ", data = " <<       theCPU->trapData
                     << ", status = " <<      theCPU->trapStatus
                     << std::endl;
+	
             }; // end if the CPU is ready
         }; // end if we just counted down to zero
     } else { // if countDownTimer == 0, do nothing
@@ -274,15 +278,17 @@ void rmmixOutputDevice::run( ) {
 	
     assert( (0 == trapNumber) || (RMMIX_JDL::PUTW == trapNumber));
     if ( RMMIX_JDL::PUTW == trapNumber ) {
-	      
+	 
 	countDownTimer = outputDelay;
         buffer = trapData;
+
+
         // clear interrupt
         trapNumber = trapData = trapStatus = 0;
         log() << "starting delay, buffered reg[" << trapData
                << "] = " << buffer << std::endl;
     } else if ( countDownTimer ) {
-	         
+	        
 	countDownTimer--;
         log() << "Delay down to " << countDownTimer << std::endl;
         if ( 0 == countDownTimer ) {
@@ -294,9 +300,11 @@ void rmmixOutputDevice::run( ) {
 		
                 theCPU->trapNumber = RMMIX_JDL::PUTW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which output
-                     
+                     std::cout<<"doing the thing"<<std::endl;
                 // Here is the actual output...
+		std::cout<<"doing the output"<<std::endl;
                 bool OK = ( *outputSink << buffer << std::endl );
+		
 		theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
                       << ", status = "     << theCPU->trapStatus
