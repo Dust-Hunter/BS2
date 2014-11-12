@@ -63,7 +63,8 @@ void rmmixCPU::run( )
     if ( trapNumber )
         handleInterrupt( );
     else if ( registers[ 0 ] < 0 ) {
-         rmminixOS::switchProgramm();
+        log()<<"idle"<<std::endl;
+	std::cout<<"idel"<<std::endl;
     }
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];
@@ -254,7 +255,7 @@ void rmmixInputDevice::run( ) {
 		
 		
 		               
-		std::cout<<trapData<<std::endl;
+		
                 // tell the CPU that she can pick up the data
                 theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 theCPU->trapNumber = RMMIX_JDL::GETW_READY;
@@ -275,6 +276,7 @@ void rmmixInputDevice::run( ) {
 }
 
 void rmmixOutputDevice::run( ) {
+std::cout<<"Running "<<deviceNumber<<" my timmer is "<<countDownTimer<<std::endl;
 	
     assert( (0 == trapNumber) || (RMMIX_JDL::PUTW == trapNumber));
     if ( RMMIX_JDL::PUTW == trapNumber ) {
@@ -296,16 +298,17 @@ void rmmixOutputDevice::run( ) {
             // Is the CPU ready for this interrupt?
             if ( 0 != theCPU->trapNumber )
                 countDownTimer = 1; // wait one more cycle...
+		
             else { // if the CPU is ready
 		
                 theCPU->trapNumber = RMMIX_JDL::PUTW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which output
-                     std::cout<<outputSink->good()<<" is os"<<std::endl;
+                   
                 // Here is the actual output...
 		
                 bool OK = ( *outputSink << buffer << std::endl );
 
-		  std::cout<<outputSink->good()<<" is os"<<std::endl;
+		
 		theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
                       << ", status = "     << theCPU->trapStatus
@@ -314,6 +317,7 @@ void rmmixOutputDevice::run( ) {
         }; // end if we just counted down to zero
     } else { // if countDownTimer == 0, do nothing
         log() << "idle." << std::endl;
+	
     }
 
 

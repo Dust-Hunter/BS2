@@ -65,7 +65,7 @@ namespace rmminixOS {
 
     int getNextWaitingJob();
     
-    void executeJobChange(int nextJobIndex);
+    void executeJobChange(int nextJobIndex,bool afterIdle);
 
     void saveRegisters();
 
@@ -85,7 +85,7 @@ namespace rmminixOS {
 
     void storeInput(int input,int jobIndex);
  
-    void clearInterrups(int jobIndex);
+    void clearInterrupts(int jobIndex);
 
     int inputToJobIndex(int deviceNumber);
 
