@@ -78,7 +78,7 @@ std::ofstream os2;
 std::ofstream os3;
 std::vector<std::ofstream*>* osVector;
 
-int la = 60;
+
 
 
 
@@ -100,9 +100,6 @@ void rmminixOS::handleHALT( )
      return;
     }else if(switchProgramm()){
 	return;
-	   
-
-	
     }else{
 //check if another job is there but cannot be switched into cause the job is waiting for io operations
 	for(int i=0;i<waitingForIOStatus->size();i++){
@@ -131,8 +128,17 @@ void rmminixOS::handleFATAL( )
 	//current programm failed so we have to mark is as finished
 	setPCof(currentJobIndex,JobFinished);
 		if(switchProgramm()){
-			return;
+		return;
 		}else{
+			//check if another job is there but cannot be switched into cause the job is waiting for io operations
+	for(int i=0;i<waitingForIOStatus->size();i++){
+		if(!waitingForIOStatus->at(i)){
+			theCPU->trapNumber = theCPU->trapData = theCPU->trapStatus = 0;
+			theCPU->registers[0]=-1;
+			
+			return;
+		}
+	}
 			  exit( theCPU->trapData );
 		}
    
@@ -162,26 +168,17 @@ void rmminixOS::removeCurrentJob(){
 }
 
 bool rmminixOS::switchProgramm(){
-	std::cout<<"current job is "<<currentJobIndex<<std::endl;
-	//check if the current job is done
-	
-	la--;
-	if(la==0){
-	exit(5);
-	}
 	if(isCurrentJobDone()){
 		removeCurrentJob();
 	}
 
 	//check if another job is waiting
 	int nextJobIndex = getNextWaitingJob();
-       	if(nextJobIndex!=noJobLeft&&nextJobIndex!=currentJobIndex){
-		std::cout<<"changing to "<<nextJobIndex<<std::endl;
-		executeJobChange(nextJobIndex,false);
 	
+       	if(nextJobIndex!=noJobLeft&&nextJobIndex!=currentJobIndex){
+		executeJobChange(nextJobIndex,false);
 		return true;
 	}else{
-		
 		return false;
 	}
 
@@ -201,8 +198,6 @@ restoreTrapRegs(nextJobIndex);
 
 void rmminixOS::executeJobChange(int nextJobIndex,bool afterIdle){
 	//check if the next job is the current Job, in that case nothing has to be done	
-	
-	
 	//dont save the registers if the currentJob is done or this function was called afer
 	//the cpu was idle, in that case the pc is -1 and we dont want to save that ofc
 	//the register have been saves before the cpu was set to idle
@@ -216,9 +211,8 @@ void rmminixOS::executeJobChange(int nextJobIndex,bool afterIdle){
 	
 	//check if the next job has been booted
 	if(hasBeenBooted(nextJobIndex)){
-		std::cout<<"booting "<<nextJobIndex<<std::endl;	
 		bootProgramm(nextJobIndex);
-		std::cout<<"booting worked"<<std::endl;
+		
 		
 	}else{
 		
@@ -322,15 +316,13 @@ bool rmminixOS::loadNextProgramm(){
 
 	//close the old os stream
 	assert( hardwareComponents[(currentJobIndex+1)*2] ); // is not null
-        //close the file in which the ostream is writing, change this line if something more readable is possible
-	osVector->at(currentJobIndex)->close();  
-//dynamic_cast<std::ofstream*>((dynamic_cast<rmmixOutputDevice*>((hardwareComponents[(currentJobIndex+1)*2 ])))->outputSink)->close();
-	
+    
 	//try loading another programm	
 	//check for another job line
-	if(decompiler->gotoState( JobLangCompiler::codeReaderState  )){
+	if(obcVector->at(currentJobIndex)->gotoState( JobLangCompiler::codeReaderState  )){
 			
-		if(!rmminixOS::load(*decompiler,currentJobIndex)){
+		if(!rmminixOS::load(*(obcVector->at(currentJobIndex)),currentJobIndex)){
+		
 		return false;		
 		}
 		
@@ -340,11 +332,10 @@ bool rmminixOS::loadNextProgramm(){
 		//OPEN A NEW OS STREAM
 		 
     		
-    		//osVector->at(currentJobIndex)->open(getOutputFilename(currentJobIndex));  
-		
+
 		//rebind io components
  		assert( hardwareComponents[ ((currentJobIndex+1)*2)-1 ] ); // is not null
-        	hardwareComponents[((currentJobIndex+1)*2)-1 ]->bind( decompiler );
+        	hardwareComponents[((currentJobIndex+1)*2)-1 ]->bind( (obcVector->at(currentJobIndex)) );
     		assert( hardwareComponents[(currentJobIndex+1)*2] ); // is not null
                 hardwareComponents[(currentJobIndex+1)*2 ]->bind( (osVector->at(currentJobIndex)) ); // bind to std out
 		//trap number fuer neustart auf initzialwert setzten		
@@ -354,6 +345,7 @@ bool rmminixOS::loadNextProgramm(){
 		return true;
 	}else{
 		//failed to relaod
+		
 		return false;	
 	}
 
@@ -408,7 +400,7 @@ bool rmminixOS::load( objectCodeDecompiler& decompiler,int programmIndex )
 bool rmminixOS::bootProgramm(int programmIndex){
    
     theCPU->instructionMemory.clear();
-   
+ 
 
     // SET UP INPUT
     // try to open a decompiler with a given file name
@@ -450,15 +442,11 @@ bool rmminixOS::bootProgramm(int programmIndex){
     assert( hardwareComponents[(programmIndex+1)*2] ); // is not null
     currentJobIndex=programmIndex;
    
-   // osVector->at(currentJobIndex)->open(getOutputFilename());   
+   
 
     //hardwareComponents[((programmIndex+1)*2)]->bind( (osVector->at(currentJobIndex)) ); // bind to std out
-hardwareComponents[((programmIndex+1)*2)]->bind(&(std::cout));
+hardwareComponents[((programmIndex+1)*2)]->bind(osVector->at(currentJobIndex));
     setPCof(programmIndex,0);
-
-    
-
-
     
 return true;
 }
@@ -578,15 +566,16 @@ void rmminixOS::handleGETW_READY( )
 	
 	
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
-
+ int inputDevice = theCPU->trapData;
     // The hardware has signaled that the get-word operation is done.
     if ( 0 != theCPU->trapStatus ) {
         // trigger fatal interrupt (crash current process)
-	  
+	hardwareComponents[ inputDevice ]->trapData = hardwareComponents[ inputDevice ]->trapStatus = hardwareComponents[ inputDevice ]->trapNumber = 0;
+	   waitingForIOStatus->at(inputToJobIndex(inputDevice))=true;
 	theCPU->trapNumber = RMMIX_JDL::FATAL;
     } else { // if OK status
 	
-        int inputDevice = theCPU->trapData;
+       
 	//assert( 1 == inputDevice ); // THIS MUST BE CHANGED LATER!
         assert( hardwareComponents[ inputDevice ] ); // not null
 	
@@ -594,7 +583,7 @@ void rmminixOS::handleGETW_READY( )
 	storeInput(hardwareComponents[ inputDevice ]->trapData,inputDevice);
 	
 	clearInterrupts(inputToJobIndex(inputDevice));
-	std::cout<<"Data "<<hardwareComponents[ inputDevice ]->trapData<<" arrived for "<<inputDevice<<std::endl;
+	
 	theCPU->trapData=theCPU->trapStatus=theCPU->trapNumber=0;
 	hardwareComponents[ inputDevice ]->trapData = hardwareComponents[ inputDevice ]->trapStatus = hardwareComponents[ inputDevice ]->trapNumber = 0;
 	
@@ -603,18 +592,17 @@ void rmminixOS::handleGETW_READY( )
         if(theCPU->registers[0]== -1){
 		executeJobChange(inputToJobIndex(inputDevice),true);
 	
-	}
 	
-    
+	}
     };
 } // end handleGETW_READY
 
 // Output, Phase 1 (CPU requests output)
 void rmminixOS::handlePUTW( )
 {
-std::cout<<"putw called by "<<currentJobIndex<<std::endl;
-std::cout<<"Date to put is "<<theCPU->registers[20]<<std::endl;
+
 osVector->at(currentJobIndex)->open(getOutputFilename(currentJobIndex));
+
 	int tempJobIndex=currentJobIndex;
 	int tempTrapData = theCPU->registers[ theCPU->trapData ];
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
@@ -655,23 +643,24 @@ osVector->at(currentJobIndex)->open(getOutputFilename(currentJobIndex));
 // Output, Phase 2 (Device signals completion)
 void rmminixOS::handlePUTW_READY( )
 {
-	
-std::cout<<"PUUUUUUUUUUUUUUUUUT WWWWWWWWWWWWWWWW READYYYYYYYYYYYYYYYYY"<<std::endl;	
-    assert( theCPU ); // i.e. assert that theCPU is not a null pointer
+
+
+assert( theCPU ); // i.e. assert that theCPU is not a null pointer
 
     // The hardware has signaled that the put-word operation is done.
     if ( 0 != theCPU->trapStatus ) {
         // trigger fatal interrupt (crash current process)
-	
+	 
         theCPU->trapNumber = RMMIX_JDL::FATAL;
     } else { // if OK status
         // Check if the device number is OK
         int outputDevice = theCPU->trapData;
+	osVector->at(outputToJobIndex(outputDevice))->close();
         //assert( 1 == outputDevice ); // This will change later!
         assert( hardwareComponents[ outputDevice ] ); // not null
 	clearInterrupts(outputToJobIndex(outputDevice));
 	theCPU->trapData=theCPU->trapStatus=theCPU->trapNumber=0;
-hardwareComponents[ outputDevice ]->trapData = hardwareComponents[ outputDevice ]->trapStatus = hardwareComponents[outputDevice ]->trapNumber = 0;
+	hardwareComponents[ outputDevice ]->trapData = hardwareComponents[ outputDevice ]->trapStatus = hardwareComponents[outputDevice ]->trapNumber = 0;
 	//this only happens if only 1 job is left and it was waiting
        waitingForIOStatus->at(outputToJobIndex(outputDevice))=true;
 	//check if the cpu was ideling cause no other job was there
@@ -679,7 +668,8 @@ hardwareComponents[ outputDevice ]->trapData = hardwareComponents[ outputDevice 
 		executeJobChange(outputToJobIndex(outputDevice),true);
 	
 	}
-osVector->at(currentJobIndex)->close();
+
+
 
     };
 

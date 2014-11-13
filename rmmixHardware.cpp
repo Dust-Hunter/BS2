@@ -50,6 +50,7 @@ std::ofstream  rmmixHardware::logStream; // There is only one, not one per insta
 int  rmmixHardware::clock       = 0;
 
 
+
 rmmixCPU* theCPU = nullptr; // C++11!
 std::map< int, rmmixHardware* > hardwareComponents; // global list of hardware
 
@@ -64,7 +65,7 @@ void rmmixCPU::run( )
         handleInterrupt( );
     else if ( registers[ 0 ] < 0 ) {
         log()<<"idle"<<std::endl;
-	std::cout<<"idel"<<std::endl;
+	std::cout<<"idle "<<theCPU->trapStatus <<std::endl;
     }
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];
@@ -252,10 +253,7 @@ void rmmixInputDevice::run( ) {
 
                 // Read Number from decompiler object into MY trapData word!!!
                 bool OK = ( *decompiler >> trapData );
-		
-		
-		               
-		
+					
                 // tell the CPU that she can pick up the data
                 theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 theCPU->trapNumber = RMMIX_JDL::GETW_READY;
@@ -276,7 +274,7 @@ void rmmixInputDevice::run( ) {
 }
 
 void rmmixOutputDevice::run( ) {
-std::cout<<"Running "<<deviceNumber<<" my timmer is "<<countDownTimer<<std::endl;
+
 	
     assert( (0 == trapNumber) || (RMMIX_JDL::PUTW == trapNumber));
     if ( RMMIX_JDL::PUTW == trapNumber ) {
@@ -307,7 +305,7 @@ std::cout<<"Running "<<deviceNumber<<" my timmer is "<<countDownTimer<<std::endl
                 // Here is the actual output...
 		
                 bool OK = ( *outputSink << buffer << std::endl );
-
+		
 		
 		theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 log() << "signaling trap " << theCPU->trapNumber
