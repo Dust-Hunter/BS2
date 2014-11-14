@@ -95,14 +95,14 @@ namespace rmminixOS {
     // Programmable Interrupt (TRAP) Handlers
     void handleHALT( );
 
-    bool loadNextProgramm();
+    bool loadNextProgramm(int jobIndex);
 
     void handleGETW( );
 
     void handlePUTW( );
 
     // Internal Interrupt Handlers
-    void handleFATAL( );
+    void handleFATAL();
 
     void handleGETW_READY(  );
 

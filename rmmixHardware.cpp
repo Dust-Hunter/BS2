@@ -65,7 +65,7 @@ void rmmixCPU::run( )
         handleInterrupt( );
     else if ( registers[ 0 ] < 0 ) {
         log()<<"idle"<<std::endl;
-	std::cout<<"idle "<<theCPU->trapStatus <<std::endl;
+		
     }
     else { // if instruction pointer is positive and no interrupt needs handling
          RMMIXinstruction instruction = instructionMemory[ registers[ 0 ] ];
@@ -239,7 +239,7 @@ void rmmixInputDevice::run( ) {
         // clear interrupt
         trapNumber = trapData = trapStatus = 0;
         log() << "starting delay" << std::endl;
-    } else if ( countDownTimer ) {
+	} else if ( countDownTimer ) {
         countDownTimer--;
         log() << "Delay down to " << countDownTimer << std::endl;
         if ( 0 == countDownTimer ) {
@@ -253,8 +253,7 @@ void rmmixInputDevice::run( ) {
 
                 // Read Number from decompiler object into MY trapData word!!!
                 bool OK = ( *decompiler >> trapData );
-					
-                // tell the CPU that she can pick up the data
+		 // tell the CPU that she can pick up the data
                 theCPU->trapStatus = ( !OK ); // if OK, set status to zero...
                 theCPU->trapNumber = RMMIX_JDL::GETW_READY;
                 theCPU->trapData = deviceNumber; // Tell the CPU which input

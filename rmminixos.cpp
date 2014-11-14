@@ -51,6 +51,7 @@
 #define _trapStatus 2
 #define _inputData 3
 #define _regToUpdate 4
+#define _clear -1
 
 // =====================================================================
 //             OPERATING SYSTEM DATA STRUCTURES
@@ -70,6 +71,7 @@ std::vector<int>* subJobVector;
 std::vector<objectCodeDecompiler*>* obcVector;
 std::vector<std::vector<int>>* trapRegMem;
 std::vector<bool>* waitingForIOStatus;
+int fatalInterruptIndex = _clear;
 
 //change this if possible cause is terrible and I feel bad for doing it
 std::ofstream os0;
@@ -96,7 +98,7 @@ void rmminixOS::handleHALT( )
     int status = theCPU->registers[ theCPU->trapData ];
     rmmixHardware::logStream << "Simulation Halt! Status = ";
     
-    if(rmminixOS::loadNextProgramm()){
+    if(rmminixOS::loadNextProgramm(currentJobIndex)){
      return;
     }else if(switchProgramm()){
 	return;
@@ -115,25 +117,41 @@ exit(status);
 
 } // end handleHALT
 
-void rmminixOS::handleFATAL( )
+void rmminixOS::handleFATAL()
 {
+    int jobIndex;
+    //check whcih job caused the fatal interrupt
+    //if the index is clear, then the fatal interrupt was caused by the cpu which means it was the current Job
+    if(fatalInterruptIndex==_clear){
+	jobIndex=currentJobIndex;
+    }else{
+        //the interrut as caused by an io operation and the related jobindex was saved in fatalInterruptIndex
+	jobIndex=fatalInterruptIndex;
+    } 
+theCPU->trapNumber=0;
+    //reset the index
+    fatalInterruptIndex=_clear;
     rmmixHardware::logStream << "FATAL Interrupt!!" << std::endl;
     std::cerr << "FATAL Interrupt!!" << std::endl;
     // This is OK if we only want to run one program -
     // We need to extend this to handle multiprogramming!
    
-	if(rmminixOS::loadNextProgramm()){
+	if(rmminixOS::loadNextProgramm(jobIndex)){
      return;
     }else{
+
 	//current programm failed so we have to mark is as finished
-	setPCof(currentJobIndex,JobFinished);
+	setPCof(jobIndex,JobFinished);
+
+
 		if(switchProgramm()){
+		
 		return;
 		}else{
 			//check if another job is there but cannot be switched into cause the job is waiting for io operations
 	for(int i=0;i<waitingForIOStatus->size();i++){
 		if(!waitingForIOStatus->at(i)){
-			theCPU->trapNumber = theCPU->trapData = theCPU->trapStatus = 0;
+			
 			theCPU->registers[0]=-1;
 			
 			return;
@@ -256,10 +274,18 @@ saveTrapRegs();
 
 int rmminixOS::getNextWaitingJob(){
 	//check the entire list
+
 	for(int i=0;i<registerMem->size();i++){
-		if(getPCof((currentJobIndex+1+i)%registerMem->size())!=JobFinished&&waitingForIOStatus->at((currentJobIndex+1+i)%registerMem->size())){
-			return (currentJobIndex+1+i)%registerMem->size();
-		}
+		if(getPCof((currentJobIndex+1+i)%registerMem->size())!=JobFinished){
+			if(waitingForIOStatus->at((currentJobIndex+1+i)%registerMem->size())){
+					return (currentJobIndex+1+i)%registerMem->size();
+				}
+		}		
+
+		//if(getPCof((currentJobIndex+1+i)%registerMem->size())!=JobFinished&&waitingForIOStatus->at((currentJobIndex+1+i)%registerMem->size())){
+						
+		//	return (currentJobIndex+1+i)%registerMem->size();
+		//}
 	}
 	
 	return noJobLeft;
@@ -312,21 +338,21 @@ return (deviceNumber/2)-1;
 }	
  
 
-bool rmminixOS::loadNextProgramm(){
+bool rmminixOS::loadNextProgramm(int jobIndex){
 
 	//close the old os stream
-	assert( hardwareComponents[(currentJobIndex+1)*2] ); // is not null
+	assert( hardwareComponents[(jobIndex+1)*2] ); // is not null
     
 	//try loading another programm	
 	//check for another job line
-	if(obcVector->at(currentJobIndex)->gotoState( JobLangCompiler::codeReaderState  )){
+	if(obcVector->at(jobIndex)->gotoState( JobLangCompiler::codeReaderState  )){
 			
-		if(!rmminixOS::load(*(obcVector->at(currentJobIndex)),currentJobIndex)){
+		if(!rmminixOS::load(*(obcVector->at(jobIndex)),jobIndex)){
 		
 		return false;		
 		}
 		
-		subJobVector->at(currentJobIndex)=subJobVector->at(currentJobIndex)+1;
+		subJobVector->at(jobIndex)=subJobVector->at(jobIndex)+1;
 		
 		
 		//OPEN A NEW OS STREAM
@@ -334,10 +360,10 @@ bool rmminixOS::loadNextProgramm(){
     		
 
 		//rebind io components
- 		assert( hardwareComponents[ ((currentJobIndex+1)*2)-1 ] ); // is not null
-        	hardwareComponents[((currentJobIndex+1)*2)-1 ]->bind( (obcVector->at(currentJobIndex)) );
-    		assert( hardwareComponents[(currentJobIndex+1)*2] ); // is not null
-                hardwareComponents[(currentJobIndex+1)*2 ]->bind( (osVector->at(currentJobIndex)) ); // bind to std out
+ 		assert( hardwareComponents[ ((jobIndex+1)*2)-1 ] ); // is not null
+        	hardwareComponents[((jobIndex+1)*2)-1 ]->bind( (obcVector->at(jobIndex)) );
+    		assert( hardwareComponents[(jobIndex+1)*2] ); // is not null
+                hardwareComponents[(jobIndex+1)*2 ]->bind( (osVector->at(jobIndex)) ); // bind to std out
 		//trap number fuer neustart auf initzialwert setzten		
 		hardwareComponents[0]->trapNumber=0;
 
@@ -360,7 +386,8 @@ bool rmminixOS::loadNextProgramm(){
 
 bool rmminixOS::load( objectCodeDecompiler& decompiler,int programmIndex )
 {
-    assert( theCPU ); // i.e. assert that theCPU is not a null pointer
+
+   assert( theCPU ); // i.e. assert that theCPU is not a null pointer
 
     if ( ! decompiler.gotoState( JobLangCompiler::codeReaderState  ) ) {
         std::cerr << "Could not find $JOB control line in object file named "
@@ -371,18 +398,23 @@ bool rmminixOS::load( objectCodeDecompiler& decompiler,int programmIndex )
     {
         RMMIXinstruction instruction;
         int instructionNumber = 0;
-	
+	bool loadingForCurrentJob= programmIndex==currentJobIndex;
+	programmMem->at(programmIndex).clear();
         // Parses each line after $JOB to $RUN
         while ( decompiler >> instruction ) {
-            theCPU->instructionMemory[ instructionNumber ] = instruction;
-            ++instructionNumber;
-	    programmMem->at(programmIndex).push_back(instruction);
+	if(loadingForCurrentJob){
+	theCPU->instructionMemory[ instructionNumber ] = instruction;
+	}    
+        ++instructionNumber;
+	programmMem->at(programmIndex).push_back(instruction);
 
         }; // until no more lines or found $RUN
-
-        // if we're here, then we could load the program.
+	if(loadingForCurrentJob){
+	// if we're here, then we could load the program.
         theCPU->registers[ 0 ] = 0;
-	
+	}
+	setPCof(programmIndex,0);    
+        
 	
 
 	
@@ -398,10 +430,10 @@ bool rmminixOS::load( objectCodeDecompiler& decompiler,int programmIndex )
 
 
 bool rmminixOS::bootProgramm(int programmIndex){
-   
+  
     theCPU->instructionMemory.clear();
  
-
+    int tempCurrentJobIndex = currentJobIndex;
     // SET UP INPUT
     // try to open a decompiler with a given file name
     decompiler = new objectCodeDecompiler(argVector->at(programmIndex));
@@ -421,11 +453,12 @@ bool rmminixOS::bootProgramm(int programmIndex){
                  << " appears to be empty."   << std::endl;
         return false;
     };
-
+	currentJobIndex=programmIndex;
     // Load the instruction memory
     if ( ! rmminixOS::load( *decompiler,programmIndex )) {
         std::cerr << "BOOT LOAD FAILED - File name " << argVector->at(programmIndex) << std::endl;
-        return false;
+	currentJobIndex = tempCurrentJobIndex;
+	 return false;
     } else { // if load was successful
 
         assert( decompiler->good() ); // should still be OK
@@ -440,7 +473,7 @@ bool rmminixOS::bootProgramm(int programmIndex){
 
     // SET UP OUTPUT
     assert( hardwareComponents[(programmIndex+1)*2] ); // is not null
-    currentJobIndex=programmIndex;
+    
    
    
 
@@ -516,8 +549,9 @@ bool rmminixOS::boot(int argc,char *argv[]) {
 // Input, Phase 1 (CPU requests input)
 void rmminixOS::handleGETW(  )
 {
-	std::cout<<"getW called by "<<currentJobIndex<<std::endl;
-	int tempJobIndex = currentJobIndex;		
+		
+	int tempJobIndex = currentJobIndex;	
+	
     assert( theCPU ); // i.e. assert that theCPU is not a null pointer
     // Save data we will need later
     if ( 0 <= theCPU->registers[0] ) {
@@ -571,8 +605,9 @@ void rmminixOS::handleGETW_READY( )
     if ( 0 != theCPU->trapStatus ) {
         // trigger fatal interrupt (crash current process)
 	hardwareComponents[ inputDevice ]->trapData = hardwareComponents[ inputDevice ]->trapStatus = hardwareComponents[ inputDevice ]->trapNumber = 0;
-	   waitingForIOStatus->at(inputToJobIndex(inputDevice))=true;
+	waitingForIOStatus->at(inputToJobIndex(inputDevice))=true;
 	theCPU->trapNumber = RMMIX_JDL::FATAL;
+	fatalInterruptIndex = inputToJobIndex(inputDevice); //the os needs to know wich job caused the fatal interrupt
     } else { // if OK status
 	
        
@@ -646,15 +681,16 @@ void rmminixOS::handlePUTW_READY( )
 
 
 assert( theCPU ); // i.e. assert that theCPU is not a null pointer
-
+  int outputDevice = theCPU->trapData;
     // The hardware has signaled that the put-word operation is done.
     if ( 0 != theCPU->trapStatus ) {
         // trigger fatal interrupt (crash current process)
-	 
+	 osVector->at(outputToJobIndex(outputDevice))->close();
         theCPU->trapNumber = RMMIX_JDL::FATAL;
+	fatalInterruptIndex = outputToJobIndex(outputDevice); //os need to know which job caused the fatal interrupt
     } else { // if OK status
         // Check if the device number is OK
-        int outputDevice = theCPU->trapData;
+      
 	osVector->at(outputToJobIndex(outputDevice))->close();
         //assert( 1 == outputDevice ); // This will change later!
         assert( hardwareComponents[ outputDevice ] ); // not null
